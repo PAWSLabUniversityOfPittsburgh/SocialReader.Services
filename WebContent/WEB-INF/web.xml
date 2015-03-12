@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:web="http://java.sun.com/xml/ns/javaee" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" id="WebApp_ID" version="3.0">
+  <display-name>Services for SocialReader</display-name>
+  <welcome-file-list>
+    <welcome-file>index.html</welcome-file>
+    <welcome-file>index.htm</welcome-file>
+    <welcome-file>index.jsp</welcome-file>
+    <welcome-file>default.html</welcome-file>
+    <welcome-file>default.htm</welcome-file>
+    <welcome-file>default.jsp</welcome-file>
+  </welcome-file-list>
+  <servlet>
+    <servlet-name>GetReadingInfo</servlet-name>
+    <servlet-class>GetReadingInfo</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>GetReadingInfo</servlet-name>
+    <url-pattern>/GetReadingInfo</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>TrackAction</servlet-name>
+    <servlet-class>TrackAction</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>TrackAction</servlet-name>
+    <url-pattern>/TrackAction</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>GetAnnotations</servlet-name>
+    <servlet-class>GetAnnotations</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>GetAnnotations</servlet-name>
+    <url-pattern>/GetAnnotations</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>SaveAnnotation</servlet-name>
+    <servlet-class>SaveAnnotation</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SaveAnnotation</servlet-name>
+    <url-pattern>/SaveAnnotation</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>CreateAnnotation</servlet-name>
+    <servlet-class>CreateAnnotation</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>CreateAnnotation</servlet-name>
+    <url-pattern>/CreateAnnotation</url-pattern>
+  </servlet-mapping>
+</web-app>

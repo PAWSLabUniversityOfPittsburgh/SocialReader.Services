@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<dbstring>jdbc:mysql://localhost:8889/socialreader</dbstring>
+	<dbuser>socialreader</dbuser>
+	<dbpass>s0c14lr34d3r</dbpass>
+</configuration>
