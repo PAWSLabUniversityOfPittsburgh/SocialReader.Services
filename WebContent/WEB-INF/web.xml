@@ -41,7 +41,6 @@
     <servlet-name>SaveAnnotation</servlet-name>
     <url-pattern>/SaveAnnotation</url-pattern>
   </servlet-mapping>
-  
   <servlet>
     <servlet-name>CreateAnnotation</servlet-name>
     <servlet-class>CreateAnnotation</servlet-class>
@@ -49,5 +48,22 @@
   <servlet-mapping>
     <servlet-name>CreateAnnotation</servlet-name>
     <url-pattern>/CreateAnnotation</url-pattern>
+  </servlet-mapping>
+  <servlet>
+    <servlet-name>RCGetStructure</servlet-name>
+    <servlet-class>RCGetStructure</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>RCGetStructure</servlet-name>
+    <url-pattern>/RCGetStructure</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>RCGetData</servlet-name>
+    <servlet-class>RCGetData</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>RCGetData</servlet-name>
+    <url-pattern>/RCGetData</url-pattern>
   </servlet-mapping>
 </web-app>

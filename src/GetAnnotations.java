@@ -92,7 +92,7 @@ public class GetAnnotations extends HttpServlet {
 				}
 				
 
-				db.closeConnection();
+				//db.closeConnection();
 
 				output = "{\n"
 						+ "  \"total\":" + annotations.size() + ",\n"
@@ -105,7 +105,7 @@ public class GetAnnotations extends HttpServlet {
 			}else{
 				output = "{\"error\":\"reading "+readingId+" does not exist\"}";
 			}
-			
+			db.closeConnection();
 		}else{
 			output = "{\"error\":\"no reading id provided\"}";
 		}

@@ -56,6 +56,15 @@ public class TrackAction extends HttpServlet {
 			
 		}
 		String action = request.getParameter("action");  
+		
+		String actionType = request.getParameter("actiontype");
+		if(actionType == null || actionType.length() == 0) actionType = "page-load";
+		
+//		String domain = request.getParameter("domain");
+//		if(domain == null || domain.length() == 0) domain = "NA"; // change!!!
+//		
+		
+		
 		String comment = request.getParameter("comment"); 
 		if(comment == null) comment = "";
 		
@@ -74,7 +83,7 @@ public class TrackAction extends HttpServlet {
 					readingIds = "["+readingId+"]";
 				}
 					
-				boolean result = db.insertTrackAction(usr, grp, sid, r.getBookId(), readingIds, fileUrl, page, action, comment);
+				boolean result = db.insertTrackAction(usr, grp, sid, r.getBookId(), readingIds, fileUrl, page, actionType, action, comment);
 				db.closeConnection();
 				if(result){
 					writeOutput(out,callback,"{res:1,msg:\"ok\"}");

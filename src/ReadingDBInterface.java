@@ -166,14 +166,15 @@ public class ReadingDBInterface extends DBInterface {
 	// Insert the track action. ReadingIds should contain all reading that has the page 
 	// where the action is tracked.
     public boolean insertTrackAction(String usr, String grp, String sid,
-            String bookId, String readingIds, String fileUrl, int page, String action, 
-            String comment) {
+            String bookId, String readingIds, String fileUrl, int page, 
+            String actionType, String action, String comment) {
         String query = "";
         try {
             stmt = conn.createStatement();
-            query = "INSERT INTO ent_tracking (actiondate, userid, groupid, sessionid, bookid, readingids, fileurl, page, action, comment) values ("
-                    + "now(), '" + usr + "','" + grp + "','" + sid + "','"
-                    + bookId + "','" + readingIds + "','" + fileUrl + "'," + page + ",'" + action + "','" + comment + "');";
+            query = "INSERT INTO ent_tracking (actiondate, userid, groupid, sessionid, bookid, readingids, fileurl, page, actiontype, action, comment) values ("
+                    + "now(), '" + usr + "','" + grp + "','" + sid + "','" 
+                    + bookId + "','" + readingIds + "','" + fileUrl + "'," + page + ",'" 
+                    + actionType + "','" + action + "','" + comment + "');";
             //System.out.println(query);
             stmt.executeUpdate(query);
             
