@@ -250,6 +250,46 @@ public class ReadingDBInterface extends DBInterface {
         
     }
 
+    
+	public ArrayList<PageActivity> getActivityByFile(String usr) {
+		ArrayList<PageActivity> r = new ArrayList<PageActivity>();
+		String query = "SELECT max(T.actiondate), T.readingids, T.fileurl, T.groupid, T.page, " +
+							" sum(if(T.actiontype='page-load',1,0)) as page_loads, " +
+							" sum(if(T.actiontype='click',1,0)) as total_clicks, " +
+							" sum(if(T.actiontype='annotation',1,0)) as total_annotations, " +
+							" sum(if(T.actiontype='scroll',1,0)) as total_scrolls, " +
+							" sum(if(T.actiontype='like',1,0)) as total_likes " +
+							" FROM ent_tracking T " +
+							" WHERE T.userid='"+usr+"' " +
+							" group by T.fileurl, T.page;";
+		
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				PageActivity p = new PageActivity(rs.getString("fileurl").trim(),rs.getInt("page"));
+				p.setPageLoads(rs.getInt("page_loads"));
+				p.setClicks(rs.getInt("total_clicks"));
+				p.setAnnotations(rs.getInt("total_annotations"));
+				p.setScrolls(rs.getInt("total_scrolls"));
+				p.setLikes(rs.getInt("total_likes"));
+				p.parseReadingIds(rs.getString("readingids").trim());
+				r.add(p);
+			}
+			
+		}
+		catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+		}
+		finally {
+			this.releaseStatement(stmt, rs);
+		}
+		return r;
+	}    
+    
+    
 	/*
 	public HashMap<String, User> getActivity(String grp, String[] non_students,
 			String[] non_sessions, HashMap<String, String> topic_map,

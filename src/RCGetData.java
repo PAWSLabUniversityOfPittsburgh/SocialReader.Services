@@ -1,6 +1,9 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -58,6 +61,9 @@ public class RCGetData extends HttpServlet {
 			// GET THE CACHED UM
 		}else{
 			// GET THE UPDATED UM
+			Node root = new Node();
+			//root.reading =
+			
 			
 			// 1. READ THE STRUCTURE OF READINGS
 			ServletContext context = this.getServletContext();
@@ -65,21 +71,38 @@ public class RCGetData extends HttpServlet {
 			String json = Common.convertStreamToString(input);
 			try{
 				JSONObject jsonObject = new JSONObject(json);
-				JSONArray sections = jsonObject.getJSONArray("children");
-				for (int i = 0; i < sections.length(); ++i) {
-				    JSONObject section = sections.getJSONObject(i);
-				    String name = section.getString("name");
-				    //System.out.println(name);
-				    
-				}
+				addChildren(root,jsonObject);
+				
+				//printTree(root," "); // @@@@
 				
 			}catch(Exception e){
+				e.printStackTrace();
+			
 				output = "{\"error\":\"not able to read structure\"}";
 			}
 			
+			// 2. GET ACTIVITY FROM DB
+			ArrayList<PageActivity> activity = db.getActivityByFile(usr);
+//			for(PageActivity p : activity){
+//				System.out.println(p.readingIds + " " + p.getPageLoads());
+//			}
+			
+			// 3. MAKE A PLAIN LIST OF READINGS AND FILL ACTIVITY OF EACH OF THEM
+			HashMap<String,Reading> readingMap = new HashMap<String,Reading>();
+			fillRadingHashMap(root, readingMap);
+			for(PageActivity p : activity){
+				for(String rId : p.readingIds){
+					Reading r = readingMap.get(rId);
+					if(r != null) r.activity.add(p);
+				}
+			}
+			
+			computeEachReadingProgress(readingMap,"simple"); // compute rogress of each reading among its own pages and activity tracked
 			
 			
-			
+			// 4. PROPAGATE PROGRESS THROUGH THE TREE
+			propagateLevels(root);
+			printTree(root,"  ");
 		}
 		
 
@@ -89,6 +112,102 @@ public class RCGetData extends HttpServlet {
 		Common.writeOutput(out,callback,output);
 	}
 
+	
+	public void addChildren(Node current, JSONObject o){
+		JSONArray children = o.getJSONArray("children");
+		if(children == null){
+			return;
+		}else{
+			for (int i = 0; i < children.length(); ++i) {
+			    JSONObject child = children.getJSONObject(i);
+			    Reading r = null;
+			    //if(child.has("format")){
+				    String bookId = (child.has("bookid") ? child.getString("bookid") : "");
+				    int spage = (child.has("spage") ? child.getInt("spage") : 0);
+				    int epage = (child.has("epage") ? child.getInt("epage") : 0);
+				    String format = (child.has("format") ? child.getString("format") : "");
+				    r = new Reading(child.getString("readingid"), child.getString("title"), bookId,
+							"", spage, epage, "","", format, "", "");			    	
+			    //}
+			    Node n = new Node();
+			    n.reading = r;
+			    n.parent = current;
+			    current.children.add(n);
+			    
+			    addChildren(n,child);
+			    
+			    //System.out.println(name);
+			    
+			}
+			
+		}
+	}
+	
+	public void printTree(Node r, String offSet){
+		for(Node n : r.children){
+			System.out.println(offSet+n.reading.getReadingId()+" "+n.getAggProgress()+"   "+(n.reading != null ? "R:"+n.reading.getProgress() : "0.0"));
+			printTree(n,offSet+"    ");
+		}
+	}
+	
+	public void fillRadingHashMap(Node r, HashMap<String,Reading> map){
+		for(Node n : r.children){
+			//if(n.reading != null) 
+			map.put(n.reading.getReadingId(),n.reading);
+			fillRadingHashMap(n,map);
+		}
+	}
+	
+	public void computeEachReadingProgress(HashMap<String,Reading> readingMap, String method){
+		for (Entry<String, Reading> reading : readingMap.entrySet()) {
+			Reading r = reading.getValue();
+			r.computeSimpleProgress();
+			System.out.println(r.getReadingId() + " " + r.getProgress() + " / " + r.getPConfidence());
+		}
+		
+	}
+	
+	public void propagateLevels(Node n){
+		double[] levels = new double[4];
+		int nChildren = 0;
+		
+		if(n.reading != null && n.reading.getFormat().length()>0){
+			levels[0] = n.reading.getKnowledge();
+			levels[1] = n.reading.getProgress();
+			levels[2] = n.reading.getKConfidence();
+			levels[3] = n.reading.getPConfidence();
+			nChildren = 1;
+		}
+		
+		if(n.children == null || n.children.size() == 0){
+			n.setAggKnowledge(levels[0]);
+			n.setAggProgress(levels[1]);
+			n.setAggKConfidence(levels[2]);
+			n.setAggPConfidence(levels[3]);
+			return;
+		}else{
+			for(Node c: n.children){
+				propagateLevels(c);
+				
+				levels[0] += c.getAggKnowledge();
+				levels[1] += c.getAggProgress();
+				levels[2] += c.getAggKConfidence();
+				levels[3] += c.getAggPConfidence();
+				
+				nChildren++;
+			}
+			
+			
+			if(nChildren == 0) nChildren = 1;
+			n.setAggKnowledge(levels[0]/nChildren);
+			n.setAggProgress(levels[1]/nChildren);
+			n.setAggKConfidence(levels[2]/nChildren);
+			n.setAggPConfidence(levels[3]/nChildren);
+			
+		}
+		
+	}
+	
 	/**
 	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
 	 */

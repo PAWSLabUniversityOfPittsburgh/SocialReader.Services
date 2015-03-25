@@ -13,6 +13,15 @@ public class Reading {
 	private String format;
 	private String prevReadingId;
 	private String nextReadingId;
+	public ArrayList<PageActivity> activity;
+	
+	private double progress;
+	private double knowledge;
+	private double pConfidence;
+	private double kConfidence;
+	
+
+
 	
 	public String getReadingId() {
 		return readingId;
@@ -83,6 +92,7 @@ public class Reading {
 		this.format = format;
 		this.prevReadingId = prev;
 		this.nextReadingId = next;
+		activity = new ArrayList<PageActivity>();
 	} 
 
 	public String jsonFormat(){
@@ -162,5 +172,71 @@ public class Reading {
 			}
 		}
 		return r;
+	}
+	
+	
+	
+	public double getProgress() {
+		return progress;
+	}
+	public void setProgress(double progress) {
+		this.progress = progress;
+	}
+	public double getKnowledge() {
+		return knowledge;
+	}
+	public void setKnowledge(double knowledge) {
+		this.knowledge = knowledge;
+	}
+	public double getPConfidence() {
+		return pConfidence;
+	}
+	public void setPConfidence(double pConfidence) {
+		this.pConfidence = pConfidence;
+	}
+	public double getKConfidence() {
+		return kConfidence;
+	}
+	public void setKConfidence(double kConfidence) {
+		this.kConfidence = kConfidence;
+	}
+	
+	
+	
+	public String[] getFiles() {
+		return files;
+	}
+	public void setFiles(String[] files) {
+		this.files = files;
+	}
+	public double getpConfidence() {
+		return pConfidence;
+	}
+	public void setpConfidence(double pConfidence) {
+		this.pConfidence = pConfidence;
+	}
+	public double getkConfidence() {
+		return kConfidence;
+	}
+	public void setkConfidence(double kConfidence) {
+		this.kConfidence = kConfidence;
+	}
+
+	public void computeSimpleProgress(){
+		double p = 0.0;
+		double pConfidence = 0.0;
+		int nPages = ePage - sPage;
+		if(nPages <= 0) nPages = 1;
+		int pagesRead = 0;
+		for(PageActivity pA : activity){
+			if(pA.getPageLoads()>0) pagesRead++;
+			if(pA.getPageLoads()>2) pConfidence += (1.0/2)*(1.0/nPages);
+			if(pA.getClicks()>3) pConfidence += (1.0/4)*(1.0/nPages);
+			if(pA.getScrolls()>5) pConfidence += (1.0/4)*(1.0/nPages);
+		}
+		
+		this.setProgress(1.0*pagesRead/nPages);
+		this.setPConfidence(pConfidence);
+		
 	}
 }
