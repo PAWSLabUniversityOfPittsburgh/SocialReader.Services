@@ -48,6 +48,38 @@ public class ReadingDBInterface extends DBInterface {
 
 	}
 	
+	public void getReadingQuestions(Reading r, String usr){
+		if(r == null) return;
+		try {
+			
+			stmt = conn.createStatement();
+			String query = "SELECT Q.id,Q.title,Q.text,Q.type,Q.options,Q.correctoptions,A.answerchoices,A.score,A.answerdate FROM ent_question Q "
+					+ " LEFT JOIN ent_answer A ON A.id = (select max(A2.id) from ent_answer A2 WHERE A2.userid='"+usr+"' AND A2.questionid=Q.id) " 
+					+ " WHERE Q.readingid = '"+r.getReadingId()+"' and Q.active=1;";
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				Question q = new Question(rs.getInt("id"),rs.getString("type"),rs.getString("title"),rs.getString("text"),rs.getString("options"),rs.getString("correctoptions"));
+				String answerChoices = rs.getString("answerchoices");
+				if(answerChoices!= null && !answerChoices.equalsIgnoreCase("null")){
+					q.setAnswerChoices(answerChoices);
+					q.setScore(rs.getDouble("score"));
+					q.setAnswerDate(rs.getString("answerdate"));
+				}
+				r.questions.add(q);
+			}
+			
+		}
+		catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+		}
+		finally {
+			this.releaseStatement(stmt, rs);
+		}
+
+	}
+	
 	// gets a list of all readings (readingid) that include a particular page
 	// this works for 
 	// - IMAGE BASED BOOKS WHERE EPAGE AND SPAGE ARE NUMBERED
@@ -250,6 +282,47 @@ public class ReadingDBInterface extends DBInterface {
         
     }
 
+    public HashMap<String,Integer> getAnnotationCount(){
+    	HashMap<String,Integer> counts = new HashMap<String,Integer>();
+    	String query = "SELECT readingids, fileurl, count(id) as nannotations from ent_annotation WHERE fileurl != '' GROUP BY fileurl, page;";
+
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				ArrayList<String> readingIds = Common.parseReadingIds(rs.getString("readingids").trim());
+				int count = rs.getInt("nannotations");
+				
+				for(String id : readingIds){
+					
+					int c = (counts.containsKey(id) ? counts.get(id) : 0);
+					c += count;
+					counts.put(id, c);
+					//Integer c = counts.get(id);
+					
+//					if(c == null){
+//						Integer i =  new Integer(count);
+//						counts.put(id,i);
+//					}else{
+//						
+//					}
+				}
+				
+			}
+		
+		}
+		catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+		}
+		finally {
+			this.releaseStatement(stmt, rs);
+		}
+    	return counts;
+    }
+    
+    
     
 	public ArrayList<PageActivity> getActivityByFile(String usr) {
 		ArrayList<PageActivity> r = new ArrayList<PageActivity>();
@@ -290,6 +363,34 @@ public class ReadingDBInterface extends DBInterface {
 	}    
     
     
+	public long insertAnswer(String questionId, String userId, double score, String answers) {
+        String query = "";
+        long key = -1;
+        try {
+            //stmt = conn.createStatement();
+            query = "INSERT INTO ent_answer (userid,questionid,answerchoices,score,answerdate) values ("
+                    + "'" + userId + "','" + questionId + "','" + answers + "'," + score + ",now());";
+            //System.out.println(query);
+            
+            stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            
+            stmt.executeUpdate(query);
+            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                key = generatedKeys.getLong(1);
+            }            
+            this.releaseStatement(stmt, rs);
+            return key;    
+        } catch (SQLException ex) {
+            System.out.println("SQLException: " + ex.getMessage());
+            System.out.println("SQLState: " + ex.getSQLState());
+            System.out.println("VendorError: " + ex.getErrorCode());
+            releaseStatement(stmt, rs);
+            return -1;
+        }
+        
+    }
+	
 	/*
 	public HashMap<String, User> getActivity(String grp, String[] non_students,
 			String[] non_sessions, HashMap<String, String> topic_map,

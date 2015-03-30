@@ -1,7 +1,10 @@
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -89,7 +92,8 @@ public class RCGetData extends HttpServlet {
 			
 			// 3. MAKE A PLAIN LIST OF READINGS AND FILL ACTIVITY OF EACH OF THEM
 			HashMap<String,Reading> readingMap = new HashMap<String,Reading>();
-			fillRadingHashMap(root, readingMap);
+			HashMap<String,Integer> annotationCounts = db.getAnnotationCount();
+			fillRadingHashMap(root, readingMap,annotationCounts);
 			for(PageActivity p : activity){
 				for(String rId : p.readingIds){
 					Reading r = readingMap.get(rId);
@@ -103,6 +107,16 @@ public class RCGetData extends HttpServlet {
 			// 4. PROPAGATE PROGRESS THROUGH THE TREE
 			propagateLevels(root);
 			printTree(root,"  ");
+			
+			// 5. GENERATE JSON
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			Date date = new Date();
+			
+			output = generateJSONFromTree(root);
+			output = output.substring(0, output.length()-1);
+			
+			output = "{\n  \"userid\":\""+usr+"\",\n  \"retrievedon\":\""+dateFormat.format(date)+"\",\n  \"updatedon\":\""+dateFormat.format(date)+"\",\n" 
+					+"  \"structureid\":\""+structureId+"\",\n\"data\":["+output+"]\n}";
 		}
 		
 
@@ -112,6 +126,22 @@ public class RCGetData extends HttpServlet {
 		Common.writeOutput(out,callback,output);
 	}
 
+	public String generateJSONFromTree(Node r){
+		String res = "";
+		if(r.reading != null) res += generateJSONFromNode(r);
+		if(r.children != null && r.children.size() > 0){
+			for(Node c : r.children){
+				res += generateJSONFromNode(c)+",";
+			}
+		}
+		
+		return res;
+	}
+	
+	public String generateJSONFromNode(Node n){
+		if(n.reading == null) return "";
+		return "{ \"readingid\":\""+n.reading.getReadingId()+"\", \"k\":"+n.getAggKnowledge()+", \"a\":"+n.reading.getAnnotationCount()+", \"p\":"+n.getAggProgress()+", \"c\":"+n.getAggPConfidence()+"}";
+	}
 	
 	public void addChildren(Node current, JSONObject o){
 		JSONArray children = o.getJSONArray("children");
@@ -150,11 +180,14 @@ public class RCGetData extends HttpServlet {
 		}
 	}
 	
-	public void fillRadingHashMap(Node r, HashMap<String,Reading> map){
+	public void fillRadingHashMap(Node r, HashMap<String,Reading> map, HashMap<String,Integer> annotationCounts){
 		for(Node n : r.children){
 			//if(n.reading != null) 
+			Integer ac = annotationCounts.get(n.reading.getReadingId());
+			if(ac == null) ac = 0;
+			n.reading.setAnnotationCount(ac);
 			map.put(n.reading.getReadingId(),n.reading);
-			fillRadingHashMap(n,map);
+			fillRadingHashMap(n, map, annotationCounts);
 		}
 	}
 	

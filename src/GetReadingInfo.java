@@ -35,6 +35,7 @@ public class GetReadingInfo extends HttpServlet {
 		
 		// parameters
 		String readingId = request.getParameter("readingid");  
+		String usr = request.getParameter("usr");  
 		String callback = request.getParameter("callback"); 
 	
 		if(readingId != null && readingId.length()>0){
@@ -42,7 +43,7 @@ public class GetReadingInfo extends HttpServlet {
 			db.openConnection();
 			
 			Reading r = db.getRedingInfo(readingId);
-			
+			db.getReadingQuestions(r,usr);
 			db.closeConnection();
 			
 			if(r != null){

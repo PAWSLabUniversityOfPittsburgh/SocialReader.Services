@@ -20,9 +20,16 @@ public class Reading {
 	private double pConfidence;
 	private double kConfidence;
 	
+	private int annotationCount;
 
-
+	public ArrayList<Question> questions;
 	
+	public int getAnnotationCount() {
+		return annotationCount;
+	}
+	public void setAnnotationCount(int annotationCount) {
+		this.annotationCount = annotationCount;
+	}
 	public String getReadingId() {
 		return readingId;
 	}
@@ -93,6 +100,7 @@ public class Reading {
 		this.prevReadingId = prev;
 		this.nextReadingId = next;
 		activity = new ArrayList<PageActivity>();
+		questions = new ArrayList<Question>();
 	} 
 
 	public String jsonFormat(){
@@ -134,11 +142,20 @@ public class Reading {
 
 			}
 			json = json.substring(0, json.length()-2);
-			json += "\n  ]\n";
+			json += "\n  ],\n";
 
 		}else{
-			json += "  \"urls\":[\""+getUrl()+"\"]";
+			json += "  \"urls\":[\""+getUrl()+"\"],\n";
 		}
+		
+		json += "  \"questions\":[ \n";
+		if(questions != null){
+			for(Question q : questions){
+				json += q.jsonFormat() + ",\n";
+			}
+		}
+		json = json.substring(0, json.length()-2);
+		json += "\n  ]";
 		
 		json += "\n}";
 		
@@ -239,4 +256,6 @@ public class Reading {
 		this.setPConfidence(pConfidence);
 		
 	}
+	
+
 }
