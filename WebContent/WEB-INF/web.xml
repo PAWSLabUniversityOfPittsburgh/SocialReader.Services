@@ -57,7 +57,6 @@
     <servlet-name>RCGetStructure</servlet-name>
     <url-pattern>/RCGetStructure</url-pattern>
   </servlet-mapping>
-  
   <servlet>
     <servlet-name>RCGetData</servlet-name>
     <servlet-class>RCGetData</servlet-class>
@@ -65,5 +64,14 @@
   <servlet-mapping>
     <servlet-name>RCGetData</servlet-name>
     <url-pattern>/RCGetData</url-pattern>
+  </servlet-mapping>
+  
+  <servlet>
+    <servlet-name>SubmitAnswer</servlet-name>
+    <servlet-class>SubmitAnswer</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>SubmitAnswer</servlet-name>
+    <url-pattern>/SubmitAnswer</url-pattern>
   </servlet-mapping>
 </web-app>
