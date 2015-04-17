@@ -1,11 +1,15 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.servlet.ServletContext;
@@ -23,6 +27,7 @@ import org.json.JSONObject;
  */
 @WebServlet("/RCGetData")
 public class RCGetData extends HttpServlet {
+	private static boolean verbose = false;
 	private static final long serialVersionUID = 1L;
        
     /**
@@ -44,6 +49,7 @@ public class RCGetData extends HttpServlet {
 		response.setContentType("application/json");
 		PrintWriter out = response.getWriter();
 		
+		
 		String usr = request.getParameter("usr");  
 		String grp = request.getParameter("grp");  
 		
@@ -51,7 +57,8 @@ public class RCGetData extends HttpServlet {
 		
 		String structureId = request.getParameter("structureid");
 		
-		String readingId = request.getParameter("readingid"); // optional. If given just return data for this reading
+		String readingIds = request.getParameter("readingids"); // optional. If given just return data for this reading
+		boolean flatStructure = (request.getParameter("flat") != null);
 		boolean getFromCache = (request.getParameter("cache") != null);
 		
 		String callback = request.getParameter("callback"); 
@@ -62,61 +69,103 @@ public class RCGetData extends HttpServlet {
 		String output = ""; 
 		if(getFromCache){
 			// GET THE CACHED UM
+			////////////////////////////////////////////////////////
+			// TODO  ///////////////////////////////////////////////
+			////////////////////////////////////////////////////////
+			
 		}else{
-			// GET THE UPDATED UM
+			// COMPUTE THE UPDATED UM
+			boolean error = false;
+			boolean store = true;
 			Node root = new Node();
 			//root.reading =
 			
+			// 1. GET A STRUCTURE OF READINGS
 			
-			// 1. READ THE STRUCTURE OF READINGS
-			ServletContext context = this.getServletContext();
-			InputStream input = context.getResourceAsStream("./WEB-INF/structure/"+structureId+".json");
-			String json = Common.convertStreamToString(input);
-			try{
-				JSONObject jsonObject = new JSONObject(json);
-				addChildren(root,jsonObject);
-				
-				//printTree(root," "); // @@@@
-				
-			}catch(Exception e){
-				e.printStackTrace();
-			
-				output = "{\"error\":\"not able to read structure\"}";
-			}
-			
-			// 2. GET ACTIVITY FROM DB
-			ArrayList<PageActivity> activity = db.getActivityByFile(usr);
-//			for(PageActivity p : activity){
-//				System.out.println(p.readingIds + " " + p.getPageLoads());
-//			}
-			
-			// 3. MAKE A PLAIN LIST OF READINGS AND FILL ACTIVITY OF EACH OF THEM
-			HashMap<String,Reading> readingMap = new HashMap<String,Reading>();
-			HashMap<String,Integer> annotationCounts = db.getAnnotationCount();
-			fillRadingHashMap(root, readingMap,annotationCounts);
-			for(PageActivity p : activity){
-				for(String rId : p.readingIds){
-					Reading r = readingMap.get(rId);
-					if(r != null) r.activity.add(p);
+			if(flatStructure){
+				// A. Creates a simple structure with just one level behind the root containing the nodes 
+				// with readings in the comma-separated list of readings readingIds.
+				if(readingIds == null || readingIds.length()==0){
+					error = true;
+					output = "{res: 0, msg:\"flat parameter specified, but no reading ids included\"}";
+				}else{
+					ArrayList<Reading> rs = db.getRedingsInfo(readingIds); // this method is the key!!!
+					for(Reading r : rs){
+						Node n = new Node(r,root);
+						root.children.add(n);
+					}
 				}
+				store = false;
+			}else{
+				// B. READ THE STRUCTURE OF READINGS FROM A FILE
+				ServletContext context = this.getServletContext();
+				String json = "";
+				try{
+					InputStream input = context.getResourceAsStream("./WEB-INF/structure/"+structureId+".json");
+					json = Common.convertStreamToString(input);
+					JSONObject jsonObject = new JSONObject(json);
+					addChildren(root,jsonObject);
+					
+					//printTree(root," "); // @@@@
+					
+				}catch(Exception e){
+					e.printStackTrace();
+					error = true;
+					output = "{res: 0, msg:\"not able to read structure\"}";
+				}
+				
 			}
 			
-			computeEachReadingProgress(readingMap,"simple"); // compute rogress of each reading among its own pages and activity tracked
 			
-			
-			// 4. PROPAGATE PROGRESS THROUGH THE TREE
-			propagateLevels(root);
-			printTree(root,"  ");
-			
-			// 5. GENERATE JSON
-			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-			Date date = new Date();
-			
-			output = generateJSONFromTree(root);
-			output = output.substring(0, output.length()-1);
-			
-			output = "{\n  \"userid\":\""+usr+"\",\n  \"retrievedon\":\""+dateFormat.format(date)+"\",\n  \"updatedon\":\""+dateFormat.format(date)+"\",\n" 
-					+"  \"structureid\":\""+structureId+"\",\n\"data\":["+output+"]\n}";
+			if(!error){
+				// 2. GET ACTIVITY FROM DB
+				ArrayList<PageActivity> activity = db.getActivityByFile(usr);
+//				for(PageActivity p : activity){
+//					System.out.println(p.readingIds + " " + p.getPageLoads());
+//				}
+				
+				// 3. MAKE A PLAIN LIST OF READINGS AND FILL ACTIVITY OF EACH OF THEM
+				HashMap<String,Reading> readingMap = new HashMap<String,Reading>();
+				HashMap<String,Integer> annotationCounts = db.getAnnotationCount();
+				fillRadingHashMap(root, readingMap,annotationCounts);
+				for(PageActivity p : activity){
+					for(String rId : p.readingIds){
+						Reading r = readingMap.get(rId);
+						if(r != null) r.activity.add(p);
+					}
+				}
+				
+				computeEachReadingProgress(readingMap,"simple"); // compute progress of each reading among its own pages and activity tracked
+				
+				
+				// 4. PROPAGATE PROGRESS THROUGH THE TREE
+				propagateLevels(root);
+				//printTree(root,"  ");
+				
+				// 5. GENERATE JSON
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				Date date = new Date();
+				
+				output = generateJSONFromTree(root,"RC");
+				output = output.substring(0, output.length()-1);
+				
+				double avgProgress = 0.0;
+				if(root.children.size()>0){
+					for(Node n: root.children) avgProgress += n.reading.getProgress();
+					avgProgress = avgProgress / root.children.size();					
+				}
+				
+				if(store) db.storeUM(usr, sid, structureId, avgProgress, "\"data\":["+output+"]\n}");
+				
+				
+				
+				output = "{\n  \"userid\":\""+usr+"\",\n  \"retrievedon\":\""+dateFormat.format(date)+"\",\n  \"updatedon\":\""+dateFormat.format(date)+"\",\n" 
+						+"  \"structureid\":\""+structureId+"\",\n\"data\":["+output+"]\n}";	
+				
+				
+			}
+				
+
 		}
 		
 
@@ -126,21 +175,174 @@ public class RCGetData extends HttpServlet {
 		Common.writeOutput(out,callback,output);
 	}
 
-	public String generateJSONFromTree(Node r){
+	
+	/**
+	 * Post response is different. It assumes a JSON has been pushed in the request with athe content items (reading-ids) to
+	 * retrieve in the format specified for Aggregate-UM interaction.
+	 */
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		ReadingDBInterface db;
+		ConfigManager cm = new ConfigManager(this); // this object gets the database connections values
+		response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Origin", "http://localhost:8888");
+		response.setContentType("application/json");
+		
+		String callback = request.getParameter("callback"); 
+		
+		PrintWriter out = response.getWriter();
+		boolean error =false;
+		String output = "";
+		String json = "";
+		
+		String usr = null;
+		String grp = null;
+		String domain = null;
+		//each provider has a content list
+		//ArrayList<String> contentList = new ArrayList<String>();
+		//the key of map is provider name, the ArrayList stores content list of this provider
+		Map<String, ArrayList<String>> provider_contentListMap = new HashMap<String, ArrayList<String>>();
+		//Map<String, Double[]> 
+		try {
+			/**
+			 * {
+					"user­-id" : "dguerra", 
+					"group­-id" : "test", 
+					"domain" : "java", 
+					"content­-list-­by­provider" : 
+					[
+						{ "provider-­id" : "WE", "content-­list" : [ "ex1","ex2" ] }, 
+						{ "provider­-id" : "AE", "content­-list" : [ "ae1" ] }
+					] 
+				}
+			 */
+			
+			json = Common.convertStreamToString(request.getInputStream());
+			JSONObject jsonObject = new JSONObject(json);
+			
+			//System.out.println(jsonObject.toString());
+			
+			usr = jsonObject.getString("user-id");
+			grp = (String)jsonObject.get("group-id");
+			domain = (String)jsonObject.get("domain");
+			
+			if(verbose){
+				System.out.println("The usr is: " + usr);
+				System.out.println("The grp is: " + grp);
+				System.out.println("The domain is: " + domain);
+				
+			}
+			
+			JSONArray providers = jsonObject.getJSONArray("content­-list-­by­provider");
+			if(providers == null){
+				error = true;
+				output = "{res: 0, msg:\"no providers defined\"}";
+			}else{
+				Node root = new Node();
+				String readingIds = "";
+				for (int i = 0; i < providers.length(); ++i) {
+				    JSONObject prov = providers.getJSONObject(i);
+				    JSONArray provContent = prov.getJSONArray("content-­list");
+				    for (int j = 0; j < provContent.length(); ++j) {
+				    	readingIds += provContent.getString(j)+",";
+				    }
+				    
+				    //System.out.println(name);
+				    
+				}
+				db = new ReadingDBInterface(cm.dbstring,cm.dbuser,cm.dbpass);
+				db.openConnection();
+				if(readingIds.length()>0) readingIds = readingIds.substring(0, readingIds.length()-1); // remove the last comma 
+				// Make a simple structure
+				if(verbose) System.out.println(readingIds);
+				ArrayList<Reading> rs = db.getRedingsInfo(readingIds); // this method is the key!!!
+				for(Reading r : rs){
+					Node n = new Node(r,root);
+					root.children.add(n);
+				}
+				
+				// GET ACTIVITY FROM DB
+				ArrayList<PageActivity> activity = db.getActivityByFile(usr);
+//				for(PageActivity p : activity){
+//					System.out.println(p.readingIds + " " + p.getPageLoads());
+//				}
+				
+				// 3. MAKE A PLAIN LIST OF READINGS AND FILL ACTIVITY OF EACH OF THEM
+				HashMap<String,Reading> readingMap = new HashMap<String,Reading>();
+				HashMap<String,Integer> annotationCounts = db.getAnnotationCount();
+				
+				db.closeConnection();
+				
+				fillRadingHashMap(root, readingMap,annotationCounts);
+				for(PageActivity p : activity){
+					for(String rId : p.readingIds){
+						Reading r = readingMap.get(rId);
+						if(r != null) r.activity.add(p);
+					}
+				}
+				
+				computeEachReadingProgress(readingMap,"simple"); // compute progress of each reading among its own pages and activity tracked
+				
+				
+				// 4. PROPAGATE PROGRESS THROUGH THE TREE
+				propagateLevels(root);
+				//printTree(root,"  ");
+				
+				// 5. GENERATE JSON
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				Date date = new Date();
+				
+				output = generateJSONFromTree(root,"aggregate");
+				output = output.substring(0, output.length()-1);
+				
+//				double avgProgress = 0.0;
+//				if(root.children.size()>0){
+//					for(Node n: root.children) avgProgress += n.reading.getProgress();
+//					avgProgress = avgProgress / root.children.size();					
+//				}
+				
+				
+				output = "{\n  \"user-id\":\""+usr+"\",\n  \"group-id\":\""+grp+"\",\n" 
+						+"  \"content-list\":["+output+"]\n}";	
+				
+				
+				
+			}		
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			output = "{res: 0, msg:\"error\"}";
+		}
+		Common.writeOutput(out,callback,output);
+	}
+	
+	
+	
+	// METHODS
+	public String generateJSONFromTree(Node r, String format){
 		String res = "";
-		if(r.reading != null) res += generateJSONFromNode(r);
+		if(r.reading != null) res += generateJSONFromNode(r, format)+",";
 		if(r.children != null && r.children.size() > 0){
 			for(Node c : r.children){
-				res += generateJSONFromNode(c)+",";
+				res += generateJSONFromTree(c,format);
 			}
 		}
 		
 		return res;
 	}
 	
-	public String generateJSONFromNode(Node n){
+	public String generateJSONFromNode(Node n, String format){
 		if(n.reading == null) return "";
-		return "{ \"readingid\":\""+n.reading.getReadingId()+"\", \"k\":"+n.getAggKnowledge()+", \"a\":"+n.reading.getAnnotationCount()+", \"p\":"+n.getAggProgress()+", \"c\":"+n.getAggPConfidence()+"}";
+		if(format.equalsIgnoreCase("RC")){
+			return "{ \"readingid\":\""+n.reading.getReadingId()+"\", \"k\":"+n.getAggKnowledge()+", \"a\":"+n.reading.getAnnotationCount()+", \"p\":"+n.getAggProgress()+", \"c\":"+n.getAggPConfidence()+"}";
+		}
+		// TODO compute time spent!!!
+		else if(format.equalsIgnoreCase("aggregate")){
+			return "{ \"content-id\":\""+n.reading.getReadingId()+"\", \"progress\":"+n.getAggProgress()+", \"attempts\":"+n.reading.getLoadCount()+", \"success-rate\":"+0.0+", \"annotation-count\":"+n.reading.getAnnotationCount()+",  \"like-count\":"+0+", \"time-spent\":-1, \"sub-activities\":"+0+"}";
+
+		}else {
+			return "{ \"readingid\":\""+n.reading.getReadingId()+"\", \"k\":"+n.getAggKnowledge()+", \"a\":"+n.reading.getAnnotationCount()+", \"p\":"+n.getAggProgress()+", \"c\":"+n.getAggPConfidence()+"}";
+		}
 	}
 	
 	public void addChildren(Node current, JSONObject o){
@@ -175,7 +377,7 @@ public class RCGetData extends HttpServlet {
 	
 	public void printTree(Node r, String offSet){
 		for(Node n : r.children){
-			System.out.println(offSet+n.reading.getReadingId()+" "+n.getAggProgress()+"   "+(n.reading != null ? "R:"+n.reading.getProgress() : "0.0"));
+			//System.out.println(offSet+n.reading.getReadingId()+" "+n.getAggProgress()+"   "+(n.reading != null ? "R:"+n.reading.getProgress() : "0.0"));
 			printTree(n,offSet+"    ");
 		}
 	}
@@ -241,11 +443,6 @@ public class RCGetData extends HttpServlet {
 		
 	}
 	
-	/**
-	 * @see HttpServlet#doPost(HttpServletRequest request, HttpServletResponse response)
-	 */
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		// TODO Auto-generated method stub
-	}
+
 
 }

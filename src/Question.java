@@ -25,11 +25,11 @@ public class Question {
 	}
 	
 	public String jsonFormat(){
-		String json = "{\"id\":\""+id+"\",\"title\":\""+title+"\",\"text\":\""+text+"\",\"type\":\""+type+"\""+
+		String json = "{\"id\":\""+id+"\",\"title\":\""+title+"\",\"text\":\""+text+"\",\"type\":\""+type+"\","+
 							"\"options\":[";
 		int i = 1;
 		for(String o : options){
-			json += "{\"" + i + "\":\"" + o + "\", \"correct\":"+Common.contains(correctOptions, i)+"},";
+			json += "{\"id\":\"" + i + "\",\"text\":\"" + o + "\", \"correct\":"+Common.contains(correctOptions, i)+"},";
 			i++;
 		}
 		json = json.substring(0, json.length()-1);
@@ -45,6 +45,7 @@ public class Question {
 			json += "]}";
 		}
 		
+		json += "\n}";
 		
 		return json;
 	}

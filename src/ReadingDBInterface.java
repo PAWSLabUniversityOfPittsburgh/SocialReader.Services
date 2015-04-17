@@ -14,8 +14,8 @@ public class ReadingDBInterface extends DBInterface {
 	
 	// get information about a particular reading, including the previous and next readings
 	public Reading getRedingInfo(String readingId) {
+		Reading r = null;
 		try {
-			Reading r = null;
 			stmt = conn.createStatement();
 			String query = "SELECT readingid,bookid,title,authors,spage,epage,url,files,format,COALESCE(nextreading,'') as nextreading, "
 					+ " COALESCE((select readingid from ent_reading where nextreading = '"+readingId+"'),'') as prevreading FROM ent_reading "
@@ -34,7 +34,6 @@ public class ReadingDBInterface extends DBInterface {
 						rs.getString("prevreading").trim(),
 						rs.getString("nextreading").trim());
 			}
-			return r;
 		}
 		catch (SQLException ex) {
 			System.out.println("SQLException: " + ex.getMessage());
@@ -45,7 +44,52 @@ public class ReadingDBInterface extends DBInterface {
 		finally {
 			this.releaseStatement(stmt, rs);
 		}
+		return r;
 
+	}
+	
+	public ArrayList<Reading> getRedingsInfo(String readingIds) {
+		ArrayList<Reading> res = new ArrayList<Reading>();
+		if(readingIds.charAt(readingIds.length()-1) == ',') readingIds = readingIds.substring(0, readingIds.length()-1);
+		readingIds = "'"+readingIds.replaceAll(" ","").replaceAll(",", "','")+"'";
+		//System.out.println(readingIds);
+		
+		try {
+			Reading r = null;
+			stmt = conn.createStatement();
+			String query = "SELECT readingid,bookid,title,authors,spage,epage,url,files,format "
+					+ " FROM ent_reading WHERE readingid in ("+readingIds+");";
+			//System.out.println(query);
+			rs = stmt.executeQuery(query);
+			while (rs.next()) {
+				r = new Reading( rs.getString("readingid").trim(),
+						rs.getString("title").trim(),
+						rs.getString("bookid").trim(),
+						rs.getString("authors").trim(),
+						rs.getInt("spage"),
+						rs.getInt("epage"),
+						rs.getString("url").trim(),
+						rs.getString("files").trim(),
+						rs.getString("format").trim(),
+						"",
+						"");
+				res.add(r);
+			}
+			
+		}
+		catch (SQLException ex) {
+			System.out.println("SQLException: " + ex.getMessage());
+			System.out.println("SQLState: " + ex.getSQLState());
+			System.out.println("VendorError: " + ex.getErrorCode());
+			return null;
+		}
+		catch (Exception e){
+			e.printStackTrace();
+		}
+		finally {
+			this.releaseStatement(stmt, rs);
+		}
+		return res;
 	}
 	
 	public void getReadingQuestions(Reading r, String usr){
@@ -208,6 +252,30 @@ public class ReadingDBInterface extends DBInterface {
                     + bookId + "','" + readingIds + "','" + fileUrl + "'," + page + ",'" 
                     + actionType + "','" + action + "','" + comment + "');";
             //System.out.println(query);
+            stmt.executeUpdate(query);
+            
+            this.releaseStatement(stmt, rs);
+            // System.out.println(query);
+            return true;    
+        } catch (SQLException ex) {
+            System.out.println("SQLException: " + ex.getMessage());
+            System.out.println("SQLState: " + ex.getSQLState());
+            System.out.println("VendorError: " + ex.getErrorCode());
+            releaseStatement(stmt, rs);
+            return false;
+        }
+        
+    }
+    
+    
+    public boolean storeUM(String usr,String sid,
+            String structureId, double avgProgress, String um) {
+        String query = "";
+        try {
+            stmt = conn.createStatement();
+            query = "INSERT INTO rc_cached_user_model (userid,sessionid,structureid,computedon,avgprogress,detailedprogress) values ("
+                    + "'" + usr + "','" + sid + "','" + structureId + "',now()," + avgProgress + ",'"  + um + "');";
+            System.out.println(query);
             stmt.executeUpdate(query);
             
             this.releaseStatement(stmt, rs);

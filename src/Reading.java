@@ -19,6 +19,7 @@ public class Reading {
 	private double knowledge;
 	private double pConfidence;
 	private double kConfidence;
+	private int loadCount;
 	
 	private int annotationCount;
 
@@ -238,7 +239,14 @@ public class Reading {
 	public void setkConfidence(double kConfidence) {
 		this.kConfidence = kConfidence;
 	}
-
+	
+	public int getLoadCount() {
+		return loadCount;
+	}
+	public void setLoadCount(int loadCount) {
+		this.loadCount = loadCount;
+	}
+	
 	public void computeSimpleProgress(){
 		double p = 0.0;
 		double pConfidence = 0.0;
@@ -251,7 +259,7 @@ public class Reading {
 			if(pA.getClicks()>3) pConfidence += (1.0/4)*(1.0/nPages);
 			if(pA.getScrolls()>5) pConfidence += (1.0/4)*(1.0/nPages);
 		}
-		
+		loadCount = pagesRead;
 		this.setProgress(1.0*pagesRead/nPages);
 		this.setPConfidence(pConfidence);
 		

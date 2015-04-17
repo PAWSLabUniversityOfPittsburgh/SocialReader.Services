@@ -16,6 +16,12 @@ public class Node {
 		parent = null;
 	}
 	
+	public Node(Reading r, Node parent){
+		this.reading = r;
+		this.children = new ArrayList<Node>();
+		this.parent = parent;
+	}
+	
 	public double getAggProgress() {
 		return aggProgress;
 	}
