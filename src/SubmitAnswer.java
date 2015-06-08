@@ -63,7 +63,7 @@ public class SubmitAnswer extends HttpServlet {
 	    	String questionId = (!json.isNull("questionid") ? json.getString("questionid") : "");
 	    	double score = (!json.isNull("score") ? json.getDouble("score") : 0.0);
 	    	
-	    	String answers = (!json.isNull("answer-choices")? json.getJSONArray("answer-choices").toString() : "");
+	    	String answers = (!json.isNull("answerchoices")? json.getJSONArray("answerchoices").toString() : "");
 	    	answers = answers.replaceAll("\\[", "").replaceAll("\\]","").replaceAll(",",";").replaceAll("\"","");
 
 	    	db = new ReadingDBInterface(cm.dbstring,cm.dbuser,cm.dbpass);
