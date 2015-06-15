@@ -161,7 +161,7 @@ public class RCGetData extends HttpServlet {
 				
 				output = "{\n  \"userid\":\""+usr+"\",\n  \"retrievedon\":\""+dateFormat.format(date)+"\",\n  \"updatedon\":\""+dateFormat.format(date)+"\",\n" 
 						+"  \"structureid\":\""+structureId+"\",\n\"data\":["+output+"]\n}";	
-				
+				// TO DO: Store the computed in rc_cahced_user_models table
 				
 			}
 				
