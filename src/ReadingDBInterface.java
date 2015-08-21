@@ -59,7 +59,7 @@ public class ReadingDBInterface extends DBInterface {
 			stmt = conn.createStatement();
 			String query = "SELECT readingid,bookid,title,authors,spage,epage,url,files,format "
 					+ " FROM ent_reading WHERE readingid in ("+readingIds+");";
-			//System.out.println(query);
+			System.out.println(query);
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {
 				r = new Reading( rs.getString("readingid").trim(),
@@ -405,6 +405,7 @@ public class ReadingDBInterface extends DBInterface {
 							" group by T.fileurl, T.page;";
 		
 		try {
+			System.out.println(query);
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(query);
 			while (rs.next()) {

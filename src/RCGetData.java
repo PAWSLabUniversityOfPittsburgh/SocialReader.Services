@@ -184,7 +184,7 @@ public class RCGetData extends HttpServlet {
 		ReadingDBInterface db;
 		ConfigManager cm = new ConfigManager(this); // this object gets the database connections values
 		response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader("Access-Control-Allow-Origin", "http://localhost:8888");
+        //response.setHeader("Access-Control-Allow-Origin", "http://localhost:8888");
 		response.setContentType("application/json");
 		
 		String callback = request.getParameter("callback"); 
